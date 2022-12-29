@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using ElasticSearchExample.Domain.Base;
 
 namespace ElasticSearchExample.Domain.Entities
 {
-	public class Product
+	public class Product : BaseEntitiy
 	{
-	}
+        public string Name { get; set; }
+        public decimal Price { get; set; }
+    }
 }

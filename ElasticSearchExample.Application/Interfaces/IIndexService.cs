@@ -1,9 +1,11 @@
-﻿namespace ElasticSearchExample.Application.Interfaces
+﻿using ElasticSearchExample.Application.Dtos;
+
+namespace ElasticSearchExample.Application.Interfaces
 {
 	public interface IIndexService
 	{
-		Task<bool> AnyIndexAsync(string indexName);
-		Task CreateIndexAsync(string indexName);
-		Task DeleteIndexAsync(string indexName);
+		Task<ResponseDto<bool>> AnyIndexAsync(string indexName);
+		Task<ResponseDto<bool>> CreateIndexAsync<Ttype>(string indexName) where Ttype : class;
+		Task<ResponseDto<bool>> DeleteIndexAsync(string indexName);
 	}
 }

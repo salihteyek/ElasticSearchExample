@@ -2,6 +2,6 @@
 {
 	public class IndexConstants
 	{
-		public const string ProductIndexName = "ProductIndex";
+		public const string ProductIndexName = "product_index";
 	}
 }
