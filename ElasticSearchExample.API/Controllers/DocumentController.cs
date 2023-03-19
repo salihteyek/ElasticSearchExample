@@ -1,5 +1,4 @@
 ﻿using ElasticSearchExample.API.Models.Document;
-using ElasticSearchExample.Application.Constants;
 using ElasticSearchExample.Application.Interfaces;
 using ElasticSearchExample.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;

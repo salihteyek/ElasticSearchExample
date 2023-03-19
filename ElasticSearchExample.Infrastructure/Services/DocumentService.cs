@@ -69,50 +69,147 @@ namespace ElasticSearchExample.Infrastructure.Services
 			return result.Select(x => x.Source).ToList();
 		}
 
+
+		/*
+		 #region the way 1
+			var keyword1 = "2";
+			var result1 = await _elasticClient.SearchAsync<TEntitiy>(
+				 s => s.Index(indexName)
+				 .Query(
+					 q => q.QueryString(
+						 d => d.Query('*' + keyword1 + '*')
+					 )).Size(5000));
+
+			// return result.Documents.ToList();
+			#endregion
+		 */
 		public async Task<List<TEntitiy>> SearchAsync(SearchModal searchModal, SortModal sortModal, string indexName)
 		{
+			// way 1 ustte
+
+			/*
+			 * match - Eşleşen veri döndürülür - equals gibi
+			 * multi match - Çoklu alanlarda eşleşen verileri döner - çoklu equals
+			 * match prefix'ler ise içeriyorsa döner - contains gibi
+			 * term - eslesen kayıtları dondurur
+			 */
+
+			#region Query (Equals and Contains and Range)
+
 			var query = new List<QueryContainer>();
-            if (searchModal?.Fields != null)
-            {
-				foreach (var item in searchModal.Fields)
+
+			if (searchModal.EqualsFields != null)
+			{
+				foreach (var item in searchModal.EqualsFields)
 				{
-					
 					query.Add(Query<TEntitiy>
 						.Match(m => m
 							.Field(new Field(item.Key.ToLower()))
 							.Query(item.Value)
-					));
-					
+						)
+					/*
+					.Term(m => m
+
+						.Field(new Field(item.Key.ToLower()))
+						.Value(item.Value)
+
+						/*
+						.Field(new Field(item.Key.ToLower()))
+						.Query(item.Value).MinimumShouldMatch(5)
+						*/
+					);
+
 				}
 			}
 
-			Func<SortDescriptor<dynamic>, IPromise<IList<ISort>>> sortList = st =>
+			if (searchModal.ContainsFields != null)
 			{
-				if (sortModal?.SortFields != null)
+				foreach (var item in searchModal.ContainsFields)
 				{
-					foreach (var item in sortModal.SortFields)
+					query.Add(Query<TEntitiy>
+						.MatchBoolPrefix(m => m
+							.Field(item.Key.ToLower())
+							.Query(item.Value)
+						//.Analyzer("standart")
+						)
+					);
+				}
+			}
+
+			if (searchModal.RangeFields?.Count > 0)
+			{
+                foreach (var item in searchModal.RangeFields)
+                {
+					//query.Add(Query<TEntitiy>.Range(r => r.Field(item.ColumnName).GreaterThan((double)attr.Value)));
+
+					if (item.ColumnType == ColumnType.Numeric)
 					{
-						if (item.Value == SortType.ASC)
-							st.Ascending(item.Key);
-						else
-							st.Descending(item.Key);
-					}
-				}
-				else
-				{
-					st.Ascending(SortSpecialField.Score);
-				}
-				return st;
-			};
+						NumericRangeQuery numericRangeQuery = new() { Field = item.ColumnName.ToLower(), Relation = RangeRelation.Within };
+						foreach (var attr in item.RangeFilters)
+                        {
+							double.TryParse(attr.Value.ToString(), out double value);
+							switch (attr.Key)
+							{
+								case RangeCondition.gt:
+									
+									numericRangeQuery.GreaterThan = value;
+									break;
+								case RangeCondition.gte:
+									numericRangeQuery.GreaterThanOrEqualTo = value;
+									break;
+								case RangeCondition.lt:
+									numericRangeQuery.LessThan = value;
+									break;
+								case RangeCondition.lte:
+									numericRangeQuery.LessThanOrEqualTo = value;
+									break;
+								default:
+									break;
+							}
+						}
+						query.Add(numericRangeQuery);
+                    }
+					else
+					{
+						DateRangeQuery dateRangeQuery = new() { Field = item.ColumnName };
+						foreach (var attr in item.RangeFilters)
+						{
+							DateTime.TryParse($"{DateTime.Parse(attr.Value.ToString()).ToString("s")}Z", out DateTime value);
+							switch (attr.Key)
+							{
+								case RangeCondition.gt:
+									dateRangeQuery.GreaterThan = value;
+									break;
+								case RangeCondition.gte:
+									dateRangeQuery.GreaterThanOrEqualTo = value;
+									break;
+								case RangeCondition.lt:
+									dateRangeQuery.LessThan = value;
+									break;
+								case RangeCondition.lte:
+									dateRangeQuery.LessThanOrEqualTo = value;
+									break;
+								default:
+									break;
+							}
+						}
+						query.Add(dateRangeQuery);
+                    }
+                }
+            }
+            #endregion
+
 
 			var result = await _elasticClient.SearchAsync<TEntitiy>(s => s
-				.Index(indexName)
+				.Index("string")
 				.From(searchModal.From)
-				.Size(searchModal.Size)
+				.Size(10/*searchModal.Size*/)
+
 				.Query(q => q
-					.Bool(b => b.Must(query.ToArray()))
+					.Bool(b => b
+						.Should(query.ToArray())
+					)
 				)
-				//.Sort(sortList)
 			);
 
 			return result.Documents.ToList();
