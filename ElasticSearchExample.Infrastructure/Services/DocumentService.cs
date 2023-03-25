@@ -130,7 +130,7 @@ namespace ElasticSearchExample.Infrastructure.Services
 						.MatchBoolPrefix(m => m
 							.Field(item.Key.ToLower())
 							.Query(item.Value)
-						//.Analyzer("standart")
+							//.Analyzer("standart")
 						)
 					);
 				}
@@ -197,19 +197,39 @@ namespace ElasticSearchExample.Infrastructure.Services
                     }
                 }
             }
-            #endregion
+			#endregion
 
+			#region Sorting
+			Func<SortDescriptor<TEntitiy>, IPromise<IList<ISort>>> sort = st =>
+			{
+				if (sortModal?.SortFields?.Count > 0)
+				{
+					foreach (var item in sortModal.SortFields)
+					{
+						if (item.Value.Equals(SortType.ASC))
+							st.Ascending(item.Key);
+						else
+							st.Descending(item.Key);
+					}
+				}
+				else
+				{
+					st.Ascending(SortSpecialField.Score);
+				}
+				return st;
+			};
+			#endregion
 
 			var result = await _elasticClient.SearchAsync<TEntitiy>(s => s
-				.Index("string")
+				.Index(indexName)
 				.From(searchModal.From)
-				.Size(10/*searchModal.Size*/)
-
+				.Size(searchModal.Size)
 				.Query(q => q
 					.Bool(b => b
 						.Should(query.ToArray())
 					)
 				)
+				.Sort(sort)
 			);
 
 			return result.Documents.ToList();
