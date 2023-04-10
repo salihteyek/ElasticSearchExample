@@ -198,7 +198,7 @@ namespace ElasticSearchExample.Infrastructure.Services
                 }
             }
 			#endregion
-
+			// Test
 			#region Sorting
 			Func<SortDescriptor<TEntitiy>, IPromise<IList<ISort>>> sort = st =>
 			{
